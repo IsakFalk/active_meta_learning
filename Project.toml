@@ -1,6 +1,10 @@
 name = "."
 authors = ["Isak Falk"]
-[compat]
-julia = "1.2.0"
+
 [deps]
 DrWatson = "634d3b9d-ee7a-5ddf-bec9-22491ea816e1"
+IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+
+[compat]
+julia = "1.2.0"
