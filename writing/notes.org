@@ -1,0 +1,13 @@
+#+TITLE: Notes / Lab Book
+#+AUTHOR: Isak Falk
+#+EMAIL: ucabitf@ucl.ac.uk
+#+DATE: \today
+#+DESCRIPTION: Lab book of thoughts and notes (this is free form and also functions as a kind of diary)
+#+KEYWORDS:
+#+LANGUAGE:  en
+#+OPTIONS:   H:5 num:t toc:t \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:t skip:nil d:nil todo:nil pri:nil tags:not-in-toc
+#+LaTeX_CLASS: article
+#+LaTeX_CLASS_OPTIONS: [bigger]
+
+
