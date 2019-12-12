@@ -1,0 +1,443 @@
+#+TITLE: Active Meta Learning using MMD
+#+SETUPFILE: ~/life/references/templates/org/prose_writing_setupfile.org
+#+LATEX_HEADER: \usepackage{macros}
+#+LATEX_HEADER: \usepackage{isak}
+
+* NEXT Motivation
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2019-11-14 Thu 12:55]
+- State "TODO"       from              [2019-11-14 Thu 12:55]
+:END:
+
+* Setup
+:LOGBOOK:
+CLOCK: [2019-11-14 Thu 14:04]--[2019-11-14 Thu 14:29] =>  0:25
+CLOCK: [2019-11-14 Thu 13:31]--[2019-11-14 Thu 13:56] =>  0:25
+CLOCK: [2019-11-14 Thu 12:55]--[2019-11-14 Thu 13:20] =>  0:25
+:END:
+We will follow the notation used in cite:denevi18_learn. Let \(\Zc =\X
+\times \Y\) denote the data space, with \(\X \subseteq \R^{d}, \Y
+\subseteq \R\) the input and output space respectively. We denote by
+\(z, x, y\) elements of the corresponding spaces where \(z = (x, y)\)
+denotes an input/output pair. The base loss \(\ell: \Y \times \Y \to
+\R_{\geq 0}\) measures the loss between two outputs \(y, y'\). We will
+also write this in the form of \(\ell(h, z) = \ell(h(x), y)\) where
+\(h: \X \to \Y\). We represent the norm and inner product as
+\(\norm{\cdot}\) and \(\scal{\cdot}{\cdot}\) and unless specified,
+they denote the standard euclidean norm and scalar product. We write a
+matrix as \(\vb{M}\) and the transpose as \(\vb{M}^{\top}\). For a
+Hilbert space \(\Hc\) we let \(\unitball \subseteq \Hc\) represent the
+zero-centred unit ball, the Hilbert space will be clear from the
+context. For any non-empty set \(S\) let \(\prob(S)\) be the set of
+all probability measures on \(S\). For any \(k \in \N\) let \(\upto{k}
+= \{1, \dots, k\}\).
+
+Let \(\rho\) be a distribution over \(\prob(\Zc)\), thus a sample
+\(\mu \sim \rho\) is a distribution on \(\Zc\). We call \(\rho\) a
+/meta-distribution/ and \(\mu\) a /base-distribution/. An algorithm
+\(\metalg\) is a function which maps from train sets to a hypothesis
+class \(\Hc\), such that \(\metalg: \Zc^{\ast} \to \Hc,
+(z_{i})_{i=1}^{n} \mapsto h = \metalg((z_{i})_{i=1}^{n})\). We sample
+\(m\) base-distributions \((\mu_{i})_{i=1}^{m} \sim \rho^{m}\) iid and
+each of these base-distributions give rise to a data set \(\task_{i} =
+(z_{j}^{i})_{j=1}^{n} \sim \mu_{i}^{n}\) sampled iid of size \(n\)
+called a /task/, which is split into a train and validation set,
+\(\task_{i} = D_{i}^{tr} \cup D_{i}^{val}\) of size \(n_{tr},
+n_{val}\) respectively. For a data set \((x_{i}, y_{i})_{i=1}^{n}\) we
+define the matrix and vector \(\vb{X}_{ij} = x_{ij}\), \(\vb{Y}_{i} = y_{i}\).
+
+Given a set of tasks \(M = (\task_{i})_{i=1}^{m}\) we want to find an
+algorithm \(\metalg\) that performs well on the /meta-risk,/ also called
+the /transfer-risk/, defined as
+#+BEGIN_EXPORT latex
+\begin{equation}
+  \label{eq:meta-risk}
+  \err{\rho}{\metalg} = \E_{\mu \sim \rho} \E_{(D^{tr} \cup
+    D^{val}) \sim \mu^{n}} \E_{D^{val}} \left[ \ell(\metalg(D^{tr}), z) \right].
+\end{equation}
+#+END_EXPORT
+We call the innermost expression the /meta-loss/,
+#+BEGIN_EXPORT latex
+\begin{equation}
+  \label{eq:meta-loss}
+  L(\metalg, \task) = L(\metalg, D^{tr}, D^{val}) := \frac{1}{\abs{D^{val}}} \sum_{z \in D^{val}} \ell(\metalg(D^{tr}), z).
+\end{equation}
+#+END_EXPORT
+so that we can express the meta-loss as
+#+BEGIN_EXPORT latex
+\begin{equation}
+  \label{eq:meta-risk-with-meta-loss}
+  \err{\rho}{\metalg} = \E_{\mu \sim \rho} \E_{\task \sim \mu^{n}} \left[
+  L(\metalg, \task) \right].
+\end{equation}
+#+END_EXPORT
+
+* MMD bound
+:PROPERTIES:
+:CUSTOM_ID: sec:mmd_bound
+:END:
+Inspired by the MMD bound of cite:viering17_nuclear_discr_activ_learn,
+we decompose the empirical counterpart to the meta-risk. Let \(M_{t}\)
+be any subset of tasks, \(M_{t} \subseteq M\) and \(\abs{M_{t}} = t\),
+and let the empirical meta-risk for a set of tasks be
+\(\err{M}{\metalg} = \frac{1}{m}\sum_{\task \in M} L(\metalg, \task)\)
+and similarly for \(M_{t}\). This corresponds to the empirical risk in
+supervised learning.
+
+** Bound on empirical excess risk
+Given a class of functions \(\Gc \subseteq \{f : 2^{\Zc} \to \R, \text{
+$f$ measurable}\}\) for any \(g \in \Gc\) we can write
+#+BEGIN_EXPORT latex
+\begin{align*}
+  \abs{\err{M}{\metalg} - \err{M_{t}}{\metalg}} &= \abs{\frac{1}{m}\sum_{i=1}^{m}L(\metalg, \task_{i}) - \frac{1}{t}\sum_{j=1}^{t}L(\metalg, \task_{j})}\\
+                                                &\leq \abs{\frac{1}{m}\sum_{i=1}^{m}L(\metalg, \task_{i}) - \frac{1}{m}\sum_{i=1}^{m} g(\task_{i})} + \abs{\frac{1}{m}\sum_{i=1}^{m} g(\task_{i}) - \frac{1}{t}\sum_{i=1}^{t} g(\task_{j})} + \abs{\frac{1}{t}\sum_{j=1}^{t}L(\metalg, \task_{j}) - \frac{1}{t}\sum_{i=1}^{t} g(\task_{j})}.
+\end{align*}
+#+END_EXPORT
+
+The middle expression can be controlled by assuming that \(g \in
+\ball_{R} \subseteq \Gc\), where \(\ball_{R}\) is the ball of radius
+\(R\). We then have that
+#+BEGIN_EXPORT latex
+\begin{equation*}
+\abs{\frac{1}{m}\sum_{i=1}^{m} g(\task_{i}) - \frac{1}{t}\sum_{i=1}^{t} g(\task_{j})} \leq R \sup_{g \in \unitball}\abs{\E_{M} \left[ g(\task) \right] - \E_{M_{t}} \left[ g(\task) \right]} = R \cdot \mathrm{IPM}_{\unitball}(M, M_{t})
+\end{equation*}
+#+END_EXPORT
+where \(\mathrm{IPM}_{\unitball}(M, M_{t})\) is the integral
+probability metric
+cite:mueller97_integ_probab_metric_their_gener_class_funct,sriperumbudur09_integ_probab_diver_binar_class
+of the unit ball in \(\Gc\). By choosing the space \(\Gc\) we can
+recover many common distances over distributions, amongst others the
+Dudley metric, Wasserstein / Kantorovich metric and the maximum mean
+discrepancy cite:sriperumbudur09_integ_probab_diver_binar_class. We
+will here focus on the maximum mean discrepancy, which means that we
+will choose \(\Gc\) to be an RKHS.
+
+The other two expressions can be controlled by noticing that
+#+BEGIN_EXPORT latex
+\begin{equation*}
+\abs{\frac{1}{m}\sum_{i=1}^{m}L(\metalg, \task_{i}) - \frac{1}{m}\sum_{i=1}^{m} g(\task_{i})} \leq \max_{\task \in M}\abs{L(\metalg, \task) - g(\task)}
+\end{equation*}
+#+END_EXPORT
+and since \(M_{t} \subseteq M\),
+#+BEGIN_EXPORT latex
+\begin{equation*}
+\abs{\frac{1}{t}\sum_{j=1}^{t}L(\metalg, \task_{j}) - \frac{1}{t}\sum_{i=1}^{t} g(\task_{j})} \leq \max_{\task \in M_{t}}\abs{L(\metalg, \task) - g(\task)} \leq \max_{\task \in M}\abs{L(\metalg, \task) - g(\task)}.
+\end{equation*}
+#+END_EXPORT
+which means that, optimising over \(g \in \ball_{R}\), we can bound
+the excess risk as
+#+BEGIN_EXPORT latex
+\begin{align*}
+\abs{\err{M}{\metalg} - \err{M_{t}}{\metalg}} &\leq \inf_{g \in \ball_{R}}\abs{\frac{1}{m}\sum_{i=1}^{m}L(\metalg, \task_{i}) - \frac{1}{m}\sum_{i=1}^{m} g(\task_{i})} + \abs{\frac{1}{m}\sum_{i=1}^{m} g(\task_{i}) - \frac{1}{t}\sum_{i=1}^{t} g(\task_{j})} + \abs{\frac{1}{t}\sum_{j=1}^{t}L(\metalg, \task_{j}) - \frac{1}{t}\sum_{i=1}^{t} g(\task_{j})}\\
+&\leq R \cdot \MMD{M}{M_{t}}{\unitball} + 2 \inf_{g \in \ball_{R}} \max_{\task \in M}\abs{L(\metalg, \task) - g(\task)}
+\end{align*}
+#+END_EXPORT
+
+Now, if we let the kernel of \(\Gc\) be \(\kernel{K}{\cdot}{\cdot}:
+2^{\Zc} \times 2^{\Zc} \to \R_{\geq 0}\) which is a kernel on
+sequences of elements from \(\Zc\)[fn:1] which can also be seen as a
+kernel on empirical distributions or point clouds, see [[cite:sutherland16_scalab_flexib_activ_learn_distr][Ch. 2]] and
+denote the kernel mean embedding of a distribution \(\rho\) with
+respect to \(K\) as \(\KME{K}{\rho}\) we can further write this as
+#+BEGIN_EXPORT latex
+\begin{equation}
+  \abs{\err{M}{\metalg} - \err{M_{t}}{\metalg}} \leq R \cdot \norm{\KME{K}{M} - \KME{K}{M_{t}}}_{\Gc} + 2 \inf_{g \in \ball_{R}} \max_{\task \in M}\abs{L(\metalg, \task) - g(\task)}. \label{eq:mmd-empirical-meta-risk-bound}
+\end{equation}
+#+END_EXPORT
+
+** Choosing \(\Gc\)
+:LOGBOOK:
+CLOCK: [2019-11-17 Sun 19:13]--[2019-11-17 Sun 19:38] =>  0:25
+CLOCK: [2019-11-17 Sun 18:33]--[2019-11-17 Sun 18:58] =>  0:25
+:END:
+The term \(\MMD{M}{M_{t}}{\unitball}\) can be optimised by choosing
+what tasks to add to \(M_{t}\) from \(M\) in a greedily sequential
+manner using kernel herding cite:chen12_super_sampl_from_kernel_herdin
+which is a special case of the frank-wolfe algorithm
+cite:frank56_algor_quadr_progr,bach12_equiv_between_herdin_condit_gradien_algor
+which yields a convergence of order \(O(\frac{1}{t})\) compared to
+\(O(\frac{1}{\sqrt{t}})\) for uniformly sampling the tasks. MMD is a
+pseudo-metric and if \(\Gc\) is a characteristic RKHS, then it's also
+a metric. Under what conditions can we choose a characteristic \(\Gc\)
+so that MMD is a metric but also \(\inf_{g \in \ball_{R}} \max_{\task
+\in M}\abs{L(\metalg, \task) - g(\task)}\) is small or zero?
+
+Up until this point we have not put any restrictions on \(\ell\),
+\(\Zc\) or \(\metalg\), and the inequality
+eqref:eq:mmd-empirical-meta-risk-bound holds in general. If we assume
+that for a fixed \(\metalg\) the function \(L(\metalg, \cdot): 2^{\Zc}
+\to \R_{\geq 0}\) is in \(\Gc\), and we define \(\kappa = \sup_{\task}\sqrt{\kernel{K}{\task}{\task}}\), then we can upper bound
+#+BEGIN_EXPORT latex
+\begin{align*}
+  \inf_{g \in \ball_{R}} \max_{\task \in M}\abs{L(\metalg, \task) -
+  g(\task)} &= \inf_{g \in \ball_{R}} \max_{\task \in M}\abs{\scal{L(\metalg, \cdot) - g}{\task}}\\
+  &\leq \inf_{g \in \ball_{R}} \max_{\task \in M}\norm{\kernel{K}{\task}{\cdot}}_{\Gc} \norm{L(\metalg, \cdot) - g}_{\Gc}\\
+  &= \kappa \cdot \inf_{g \in \ball_{R}}\norm{L(\metalg, \cdot) - g}_{\Gc}
+\end{align*}
+#+END_EXPORT
+and if we denote \(g^{\ast} := L(\metalg, \cdot)\) and \(R^{\ast} =
+\norm{g^{\ast}}_{\Gc}\) then we can write out \(\inf_{g \in
+\ball_{R}}\norm{L(\metalg, \cdot) - g}_{\Gc}\) explicitly
+#+BEGIN_EXPORT latex
+\begin{align*}
+  &= \inf_{g \in \ball_{R}} \norm{g^{\ast} - g}_{\Gc}\\
+  &= \norm{g^{\ast} - g^{\ast}\frac{R}{R^{\ast}}}_{\Gc}\indic{R^{\ast}
+  > R}\\
+  &= \norm{g^{\ast}(1 - \frac{R}{R^{\ast}})}_{\Gc}\indic{R^{\ast}
+    > R}\\
+  &= (R^{\ast} - R)\indic{R^{\ast} > R}\\
+  &= \max(0, R^{\ast} - R)
+\end{align*}
+#+END_EXPORT
+where we have used the fact that the closest element to \(g^{\ast}\)
+is \(g^{\ast}\) projected onto \(\ball_{R}\). If the
+above is true (\(L(\metalg, \cdot) \in \Gc\)) then
+eqref:eq:mmd-empirical-meta-risk-bound can be written as
+#+BEGIN_EXPORT latex
+\begin{align}
+  \abs{\err{M}{\metalg} - \err{M_{t}}{\metalg}} &\leq R \cdot \norm{\KME{K}{M} - \KME{K}{M_{t}}}_{\Gc} + 2 \kappa \max(0, R^{\ast} - R)\\
+&= R \left(\norm{\KME{K}{M} - \KME{K}{M_{t}}}_{\Gc} + 2 \kappa \max(0, \frac{R^{\ast}}{R} - 1) \right) \label{eq:mmd-empirical-meta-risk-bound-L-A-in-RKHS}
+\end{align}
+#+END_EXPORT
+
+** Functional class of \(L(\metalg, \cdot)\)
+Given a class of algorithms, each algorithm \(\metalg\) yields a
+different function \(L_{\metalg}(\task)\) which can be expanded as
+#+BEGIN_EXPORT latex
+\begin{align*}
+  L_{\metalg}(\task) &= \frac{1}{\abs{D^{val}}} \sum_{z \in D^{val}}
+                       \ell(\metalg(D^{tr}), z)\\
+  &= \frac{1}{\abs{D^{val}}} \sum_{(x, y) \in D^{val}}
+                       \ell(\metalg(D^{tr})(x), y)
+\end{align*}
+#+END_EXPORT
+and we see that the smoothness of \(L_{\metalg}\) depends on both
+\(D^{tr}\) and \(D^{val}\), where \(D^{tr}\) enters through the output
+of the training, \(\metalg(D^{tr})\), changes with respect to
+\(D^{tr}\) and \(D^{val}\) through \(\ell(\metalg(D^{tr})(x), y)\). So
+if \(\ell\) is well-behaved[fn:2] in both of its arguments and
+\(\metalg(D^{tr})(x)\) is smooth with respect to both \(D^{tr}, x\)
+then the meta-loss will be well-behaved as well.
+
+Below we show different conditions when different classes of
+algorithms give smooth functions, which means that we can approximate
+\(L_{\metalg}\) well by an element in some RKHS \(\Gc\).
+
+*** Kernel Ridge Regression
+:LOGBOOK:
+CLOCK: [2019-11-18 Mon 14:42]--[2019-11-18 Mon 15:07] =>  0:25
+CLOCK: [2019-11-18 Mon 11:48]--[2019-11-18 Mon 12:13] =>  0:25
+:END:
+We first consider the class of functions from ERM leading to Kernel
+Ridge Regression (KRR), which means that we set \(\ell(y, y') = (y -
+y')^{2}\) and let \(\Hc\) be the corresponding RKHS (the hypothesis
+space) with kernel \(\kernel{l}{\cdot}{\cdot}\). In this case we have that the algorithm \(\metalg_{\lambda,
+h_{0}}\) is given by
+#+BEGIN_EXPORT latex
+\begin{equation*}
+\metalg_{\lambda, h_{0}}(D^{tr}) = \argmin_{h \in
+  \Hc}\frac{1}{n_{tr}}\sum_{i=1}^{n_{tr}}(h(x_{i}) - y_i)^{2} +
+\lambda \norm{h - h_{0}}^{2}_{\Hc}
+\end{equation*}
+#+END_EXPORT
+and normal KRR is recovered when we set \(h_{0} = 0\). If we
+parameterise \(h_{0} = \spn(\{\psi_{p}\}_{p=1}^{P})\) where
+\(\{\psi_{p}\}_{p=1}^{P} \subseteq \Hc^{P}\) then the
+semi-parametric representer theorem
+cite:schoelkopf01_gener_repres_theor says that the unique minimiser
+(due to the loss and regularisation terms both being convex and
+increasing) is of the form \(h(x) =
+\sum_{i=1}^{n_{tr}} \alpha_{i} \kernel{l}{x_{i}}{x} + \sum_{p=1}^{P}
+\beta_{p} \psi_{p}(x) = f(x) + b(x)\) where \(h\) minimizes the problem
+#+BEGIN_EXPORT latex
+\begin{equation*}
+J(h) = \frac{1}{n_{tr}}\sum_{i=1}^{n_{tr}}(h(x_{i}) - y_i)^{2} +
+\lambda \norm{f}^{2}_{\Hc}.
+\end{equation*}
+#+END_EXPORT
+
+If we now let \(\vb{\Psi}_{ip} = \psi_{p}(x_{i})\) and \(\vb{L}_{ij}
+= \kernel{l}{x_{i}}{x_{j}}\) we can rewrite this
+in a dual form depending only on the vectors of coefficients
+\(\vb{\alpha} \in \R^{n_{tr}}, \vb{\beta} \in \R^{P}\). The dual
+problem can be shown to be equal to
+#+BEGIN_EXPORT latex
+\begin{equation}
+J(\vb{\alpha}, \vb{\beta}) = \frac{1}{n_{tr}}\norm{\vb{K}\vb{\alpha} +
+\vb{\Psi}\vb{\beta} - \vb{Y}}_{\R^{n_{tr}}}^{2} +
+\lambda \vb{\alpha}^{\top}\vb{K}\vb{\alpha} \label{eq:KRR-objective-dual-formulation}
+\end{equation}
+#+END_EXPORT
+which if we define the following, \(\vb{\theta} = [\vb{\alpha},
+\vb{\beta}]^{\top} \in \R^{n_{tr} + P}\), \(\vb{L} = [\vb{K},
+\vb{\Psi}] \in \R^{n_{tr} \times (n_{tr} + P)}\) and
+#+BEGIN_EXPORT latex
+\begin{equation*}
+\vb{R} = \begin{bmatrix} \vb{K} & \vb{0}\\ \vb{0} & \vb{0} \end{bmatrix} \in \R^{(n + P) \times (n + P)}
+\end{equation*}
+#+END_EXPORT
+then we can rewrite eqref:eq:KRR-objective-dual-formulation as follows
+#+BEGIN_EXPORT latex
+\begin{equation*}
+J(\vb{\theta}) = \frac{1}{n}\norm{\vb{L}\vb{\theta} - \vb{Y}}_{\R^{n}}^{2} +
+\lambda \vb{\theta}^{\top}\vb{R}\vb{\theta}.
+\end{equation*}
+#+END_EXPORT
+Jacobian and Hessian looks as follows
+#+BEGIN_EXPORT latex
+\begin{align*}
+\nabla_{\vb{\theta}} J &= \frac{2}{n}(\vb{L}^{\top}\vb{L}\vb{\theta} - \vb{L}^{\top}\vb{Y} + n \lambda \vb{R} \vb{\theta}) = \frac{2}{n}(\vb{L}^{\top}(\vb{L}\vb{\theta} - \vb{Y}) + n \lambda \vb{R} \vb{\theta}) = \frac{2}{n}((\vb{L}^{\top}\vb{L} + n \lambda \vb{R}) \vb{\theta} - \vb{L}^{\top}\vb{Y})\\
+\nabla^{2}_{\vb{\theta}} J &= \frac{2}{n}(\vb{L}^{\top}\vb{L} + n \lambda \vb{R})
+\end{align*}
+#+END_EXPORT
+and the solution is
+#+BEGIN_EXPORT latex
+\begin{align*}
+  \vb{\theta}^{\ast} &= \left(\vb{L}^{\top}\vb{L} + n \lambda
+  \vb{R}\right)^{-1}\vb{L}^{\top}\vb{Y}\\
+                     &= \left(\begin{bmatrix}
+                         \vb{K}^{2} & \vb{K}\vb{\Psi}\\
+                         \vb{\Psi}^{\top}\vb{K} & \vb{\Psi}^{\top}\vb{\Psi}
+                       \end{bmatrix} + n \lambda
+                                                  \begin{bmatrix}
+                         \vb{K} & \vb{0}\\
+                         \vb{0} & \vb{0}
+                       \end{bmatrix}\right)^{-1}\begin{bmatrix}
+                       \vb{K} \vb{Y}\\
+                       \vb{\Psi}^{\top} \vb{Y}
+                     \end{bmatrix}
+\end{align*}
+#+END_EXPORT
+where we require the Hessian to be p.d. Letting \(P=0\) we recover the
+usual KRR solution
+#+BEGIN_EXPORT latex
+\begin{equation*}
+\metalg_{\lambda}(D^{tr})(x) = \sum_{i=1}^{n_{tr}}\alpha^{\ast}_{i}K(x_{i}, x) = \vb{K}_{x}^{\top}\vb{\alpha}^{\ast} = \vb{K}_{x}^{\top}(\vb{K} + n_{tr}\lambda I_{n_{tr}})^{-1}\vb{Y}.
+\end{equation*}
+#+END_EXPORT
+and for a general set \(\{\psi_{p}\}_{p=1}^{P}\) where we let
+\(\psi(x) = [\psi_{1}(x), \dots, \psi_{P}(x)]^{\top}\) and let
+\(\metalg_{\lambda, \{\psi_{p}\}_{p=1}^{P}}\) denote the algorithm with
+regularisation parameter \(\lambda\) and \(h_{0}\) in the span of
+\(\{\psi_{p}\}_{p=1}^{P}\), then
+#+BEGIN_EXPORT latex
+\begin{equation*}
+\metalg_{\lambda, \{\psi_{p}\}_{p=1}^{P}}(D^{tr})(x) =
+\vb{K}_{x}^{\top}\vb{\alpha}^{\ast} + \psi(x)^{\top}\vb{\beta}^{\ast}
+= \begin{bmatrix}
+  \vb{K}_{x} \\
+  \psi(x)
+\end{bmatrix}^{\top}
+\vb{\theta}^{\ast}.
+\end{equation*}
+#+END_EXPORT
+In this case we can see that when the Hessian is assumed to the p.d.
+and the kernel is smooth that the algorithm as a function of the train
+set is smooth since the inverse and matrix multiplication are smooth
+functions and the estimator is also smooth in \(x\) since the kernel
+is smooth and the inner product is smooth. This shows that for KRR,
+the function \(L_{\metalg_{\lambda, \{\psi\}_{p=1}^{P}}}(\task)\) is
+smooth given that \(\{\psi\}_{p=1}^{P}\) leads to a p.d. Hessian and
+for a suitable RKHS \(\Gc\) dense in the set of smooth functions from
+\(2^{\Zc} \to \R\) eqref:eq:mmd-empirical-meta-risk-bound-L-A-in-RKHS
+holds.
+
+*** Gradient Descent
+Assuming that we are doing ERM where the algorithm \(\metalg\)
+is defined to be the solution to the ERM problem with some
+pre-specified hypothesis space \(\Hc\),
+#+BEGIN_EXPORT latex
+\begin{equation*}
+\metalg(D^{tr}) = \argmin_{h \in \Hc}\err{D^{tr}}{h}
+\end{equation*}
+#+END_EXPORT
+if we instead of solving this analytically do \(K\)-step gradient
+descent, \(KGD\), where we parameterise \(h\) by \(\vb{\theta}\) given
+some initial starting point \(\vb{\theta}_{0}\) and a learning rate scheme
+\((\gamma_{k})_{k=1}^{\infty}\) then we can define the GD-update
+operator as
+#+BEGIN_EXPORT latex
+\begin{equation}
+\label{eq:GD-operator}
+GD^{\gamma}(\vb{\theta}) = \vb{\theta} - \gamma \nabla_{\tilde{\vb{\theta}}} \err{D^{tr}}{\tilde{\vb{\theta}}} \vert_{\tilde{\vb{\theta}} = \vb{\theta}}.
+\end{equation}
+#+END_EXPORT
+From this we can define a new algorithm \(\metalg_{KGD}(D^{tr})\)
+which depends implicitly on the initialisation point and learning rate
+\(\vb{\theta}_{0}, (\gamma_{k})_{k=1}^{\infty}\) as
+#+BEGIN_EXPORT latex
+\begin{equation}
+\label{eq:ERM-GD}
+\metalg_{KGD}(D^{tr}) = GD^{\gamma_{K}} \circ \dots \circ GD^{\gamma_{1}}(\vb{\theta}_{0})
+\end{equation}
+#+END_EXPORT
+and if we write \(\vb{\theta}_{k} =
+GD^{\gamma_{k}}(\vb{\theta}_{k-1})\) and let \(\vb{g}_{k} =
+\nabla_{\tilde{\vb{\theta}}} \err{D^{tr}}{\tilde{\vb{\theta}}}
+\vert_{\tilde{\vb{\theta}} = \vb{\theta}_{k}}\) then we can
+equivalently express this as
+#+BEGIN_EXPORT latex
+\begin{equation}
+\label{eq:ERM-GD-explicit}
+\metalg_{KGD}(D^{tr}) = \vb{\theta}_{0} - \sum_{k=0}^{K-1} \gamma_{k+1} \vb{g}_{k}.
+\end{equation}
+#+END_EXPORT
+
+Since sums of smooth functions are smooth we have that
+\(\metalg_{KGD}(D^{tr})\) is a smooth function of \(D^{tr}\) as long
+as the gradients, \(\vb{g}_{k}\) are. This can be made precise, but we
+can avoid it by assuming that the loss and functions in the hypothesis
+class is infinitely differentiable. This means that the function
+\(L_{\metalg}(\task)\) is smooth in this case.
+
+** NEXT Kernels on Distributions
+:LOGBOOK:
+- State "NEXT"       from              [2019-11-25 Mon 08:31]
+:END:
+
+** Equivalence of Curriculum Learning and Active Learning
+:LOGBOOK:
+- State "DONE"       from "NEXT"       [2019-11-25 Mon 09:38]
+- State "NEXT"       from              [2019-11-25 Mon 08:32]
+:END:
+The formal definition of a /curriculum/ according to
+cite:bengio09_curric is as follows, let \(P(z)\) be the target
+distribution and let \(Q_{\lambda}(z)\) be a set of distributions
+indexed by the parameter \(\lambda \in [0, 1]\), where \(\lambda = 0\)
+is a simpler toy problem and \(\lambda = 1\) is the original problem,
+\(Q_{1} = P\). Let \(0 \leq W_{\lambda}(z) \leq 1\). Then
+\(Q_{\lambda}(z) \propto W_{\lambda}(z) P(z)\) and \(\int
+Q_{\lambda}(z) \dd P(z) = 1\). For
+a monotonically increasing sequence of values
+\((\lambda_{l})_{l=1}^L\) with \(\lambda_{1} = 0, \lambda_{L} = 1\),
+the sequence of distribution \((Q_{\lambda_{l}})_{l=1}^{L}\) is a
+curriculum if the entropy of the sequence of distribution is
+increasing, \(H(Q_{\lambda_{l}}) < H(Q_{\lambda_{l+1}})\) and
+\((W_{\lambda})_{l=1}^{L}\) is non-decreasing for all \(z\),
+\(W_{\lambda_{l}}(z) \leq W_{\lambda_{l+1}}(z)\). To harmonise with
+our notation, we let \(t := l\) and \(L := n\).
+
+For active learning, we simply let \(Q_{t} := Q_{\lambda_{t}}\) which
+is an empirical distribution of size \(t\), thus \(W_{t}(z) = \indic{z
+\in Q_{t}}\) and we have that the sequence \((W_{t})_{l=1}^{n}\) is
+monotonically increasing, since \(Q_{t} \subseteq Q_{t+1}\) and
+\(H(Q_{t}) = - \sum_{i=1}^{t}t^{-1}\log(t^{-1}) = \log(t)\) which is
+increasing in \(t\). Hence as long as we use uniform weight over the
+active learning set, active learning with uniform weights is a
+curriculum (which extends to any setting, supervised or meta
+learning).
+
+This means that the analysis done for active meta learning and the MMD
+bound in section [[#sec:mmd_bound]] applies to curriculum learning problems
+as well.
+
+bibliography:/home/isak/life/references/bibliography/references.bib
+bibliographystyle:unsrt
+
+* Footnotes
+
+[fn:2] Well-behaved in the sense that for different assumptions on
+\(\ell, \metalg\) we will get different behaviour of \(L_{\metalg}\)
+e.g. \(L_{\metalg} \in C^{k}\) for some \(k \in \N \cup \{+\infty\}\).
+
+[fn:1] We allow duplicates hence we use sequences and not sets.
