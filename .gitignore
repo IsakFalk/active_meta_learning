@@ -7,7 +7,7 @@ data
 videos
 plots
 notebooks
-_research
+# _research: This is where I keep the notes, want to source control
 
 ################################################################################
 #                                    Julia                                     #
@@ -415,6 +415,9 @@ $RECYCLE.BIN/
 ## Acknowledgements
 # Many thanks to `https://gitignore.io/`, written and maintained by Joe Blau, which contributed much material to this gitignore file.
 
+###############################################################
+# Personal Additions (helm-gitignore / https://gitignore.io/) #
+###############################################################
 
 # Created by https://www.gitignore.io/api/emacs
 # Edit at https://www.gitignore.io/?templates=emacs
