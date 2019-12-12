@@ -1,10 +1,36 @@
-name = "."
-authors = ["Isak Falk"]
+name = "active_meta_learning"
+uuid = "a80e0b85-a562-45f5-800c-2090406bb6bc"
+authors = ["Isak Falk <ucabitf@ucl.ac.uk>"]
+version = "0.1.0"
 
 [deps]
+ActiveMetaLearning = "34bffa30-d672-48c7-bcd7-93b612144162"
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 DrWatson = "634d3b9d-ee7a-5ddf-bec9-22491ea816e1"
+Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
+GR = "28b8d3ca-fb5f-59d9-8090-bfdbd6d07a71"
 IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a"
+KernelFunctions = "ec8451be-7e33-11e9-00cf-bbf324bd1392"
+LearningStrategies = "4e8a8231-0ba9-591b-8620-81c6740d7791"
+LossFunctions = "30fc2ffe-d236-52d8-8643-a9d8f7c094a7"
+MLDataUtils = "cc2ba9b6-d476-5e6d-8eaf-a92d5412d41d"
+MLDatasets = "eb30cadb-4394-5ae3-aed4-317e484a6458"
+MLJ = "add582a8-e3ab-11e8-2d5e-e98b27df1bc7"
+MLLabelUtils = "66a33bbf-0c2b-5fc8-a008-9da813334f0a"
+MultivariateStats = "6f286f6a-111f-5878-ab1e-185364afe411"
+PDMats = "90014a1f-27ba-587c-ab20-58faa44d9150"
+PGFPlots = "3b7a836e-365b-5785-a47d-02c71176b4aa"
+PenaltyFunctions = "06bb1623-fdd5-5ca2-a01c-88eae3ea319e"
+PkgTemplates = "14b8a8f1-9102-5b29-a752-f990bacb7fe1"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
+RDatasets = "ce6b1742-4840-55fa-b093-852dadbb1d8b"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+ValueHistories = "98cad3c8-aec3-5f06-8e41-884608649ab7"
 
 [compat]
 julia = "1.2.0"
