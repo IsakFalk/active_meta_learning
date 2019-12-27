@@ -23,8 +23,8 @@ struct CategoricalDistribution
 end
 CategoricalDistribution(xs) = CategoricalDistribution(xs, ones(size(xs, 1)) ./ size(xs, 1))
 CategoricalDistribution() = CategoricalDistribution(reshape([0.0], 1, 1), [1.0]) # Empty initialisation is dirac over 0.0
-ffunction DiracDistribution(x::Matrix{Float64})
+function DiracDistribution(x::Matrix{Float64})
     @assert size(x, 1) == 1
     return CategoricalDistribution(x, [1.0])
 end
-EmpiricalDistribution(xs) = CategoricalDistribution(xs)
+const EmpiricalDistribution(xs) = CategoricalDistribution(xs)
