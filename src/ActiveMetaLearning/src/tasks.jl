@@ -4,6 +4,140 @@ abstract type MetaLearningEnvironment end
 abstract type MetaLearningRegEnvironment <: MetaLearningEnvironment end
 abstract type MetaLearningClassEnvironment <: MetaLearningEnvironment end
 
+function sample_task end
+
+"""
+    get_array_of_tasks(meta_env, T, n)
+
+Compute and return an array of T tasks sampled from `meta_env`, each
+task consisting of `n` (x, y) pairs. The array returned is indexed
+such that `tasks[t][1][n]` returns the n'th instance from task t and
+`tasks[t][2][n]` returns the n'th output.
+"""
+function get_array_of_tasks(meta_env::MetaLearningEnvironment, T::Int, n::Int)
+    tasks = []
+    for i in 1:T
+        append!(tasks, [sample_task(meta_env, n)])
+    end
+    return tasks
+end
+
+########
+# MAML #
+########
+
+"""
+MAML sine wave environment
+"""
+struct sine_wave_environment <: MetaLearningRegEnvironment
+    p_A::Distribution
+    p_ϕ::Distribution
+    p_x::Distribution
+    p_ϵ::Distribution
+end
+sine_wave_environment() = sine_wave_environment(Uniform(0.1, 5.0), Uniform(0.0, π), Uniform(-5.0, 5.0), DiscreteUniform(0.0, 0.0))
+
+function sample_task(meta_environment::sine_wave_environment, n::Int)
+    me = meta_environment
+    A = rand(me.p_A)
+    ϕ = rand(me.p_ϕ)
+    x = rand(me.p_x, n)
+    ϵ = rand(me.p_ϵ, n)
+    y = A.*sin.(x .+ ϕ) .+ ϵ
+    return x, y
+end
+
+############################################
+# LEO MAML bimodal sine/linear environment #
+############################################
+struct sine_wave_linear_mixture_environment <: MetaLearningRegEnvironment
+    # Mixture probabilities
+    p_prior::Bernoulli
+    # For sine wave
+    p_A::Distribution
+    p_ϕ::Distribution
+    p_x::Distribution
+    # For linear
+    p_w::Distribution
+    p_b::Distribution
+    # Noise
+    p_ϵ::Distribution
+end
+sine_wave_linear_mixture_environment() = sine_wave_linear_mixture_environment(Bernoulli(0.5),
+                                                                              Uniform(0.1, 5.0),
+                                                                              Uniform(0.0, π),
+                                                                              Uniform(-5.0, 5.0),
+                                                                              Uniform(-3.0, 3.0),
+                                                                              Uniform(-3.0, 3.0),
+                                                                              Normal(0.0, 0.3))
+
+function sample_task(meta_environment::sine_wave_linear_mixture_environment, n::Int)
+    me = meta_environment
+    if rand(me.p_prior) == 0
+        A = rand(me.p_A)
+        ϕ = rand(me.p_ϕ)
+        x = rand(me.p_x, n)
+        ϵ = rand(me.p_ϵ, n)
+        y = A*sin.(x .+ ϕ) .+ ϵ
+    else
+        w = rand(me.p_w)
+        b = rand(me.p_b)
+        x = rand(me.p_x, n)
+        ϵ = rand(me.p_ϵ, n)
+        y = w*x .+ b .+ ϵ
+    end
+    return x, y
+end
+
+
+#######################################################
+# Learning to Learn around a common mean environments #
+#######################################################
+
+"""
+Learning to learn around a common mean, Ex. 1
+"""
+struct common_mean_ex1_environment <: MetaLearningRegEnvironment
+    d::Int
+end
+
+function sample_task(meta_environment::common_mean_ex1_environment, n::Int)
+    d = meta_environment.d
+    # Since normal distribution is radial
+    # we can sample from it and rescale.
+    # This will be the same as sampling uniformly from sphere
+    X = randn(n, d)
+    X ./= sqrt.(sum(X.^2, dims=2))
+    w = randn(d) .+ 4.0
+    Y = X*w + (1.0/sqrt(5.0)).*randn(n)
+    return X, Y
+end
+
+"""
+Learning to learn around a common mean, Ex. 2
+"""
+struct common_mean_ex2_environment <: MetaLearningRegEnvironment
+    d::Int
+end
+
+function sample_task(meta_environment::common_mean_ex2_environment, n::Int)
+    d = meta_environment.d
+    w_mog = MixtureModel(
+        MvNormal[MvNormal(2.0.*ones(d), 1.0), MvNormal(4.0.*ones(d), 1.0)],
+    )
+    x_mog = MixtureModel(
+        MvNormal[MvNormal(2.0.*ones(d), 1.0), MvNormal(4.0.*ones(d), 1.0)],
+    )
+    w = reshape(rand(w_mog, 1), :, 1)
+    X = rand(x_mog, n)'
+    Y = X * w + (1.0/sqrt(5)).*randn(n)
+    return X, Y
+end
+
+#########################################################################
+# Incremental Learning-to-Learn with StatisticalGuarantees environments #
+#########################################################################
+
 """
 Low dimensional linear regression task:
 Y = X*P*w + E, where Y ∈ R^{n}, P ∈ R^{d × w_d}, X ∈ R^{n × d}, w ∈ R^{w_d}, E ∈ R^{n}
@@ -49,20 +183,4 @@ function sample_task(meta_environment::low_dim_lin_reg_environment, n::Int)
     E = rand(me.p_ϵ, n)
     Y = X*w + E
     return X, Y
-end
-
-"""
-    get_array_of_tasks(meta_env, T, n)
-
-Compute and return an array of T tasks sampled from `meta_env`, each
-task consisting of `n` (x, y) pairs. The array returned is indexed
-such that `tasks[t][1][n]` returns the n'th instance from task t and
-`tasks[t][2][n]` returns the n'th output.
-"""
-function get_array_of_tasks(meta_env::MetaLearningEnvironment, T::Int, n::Int)
-    tasks = []
-    for i in 1:T
-        append!(tasks, [sample_task(meta_env, n)])
-    end
-    return tasks
 end
